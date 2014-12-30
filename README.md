@@ -1,6 +1,6 @@
 # Collie [![Build Status](https://travis-ci.org/bsm/collie.png)](https://travis-ci.org/bsm/collie)
 
-Collie aims to provide basic primitives for column-oriented way storage
+Collie aims to provide basic primitives for column-oriented storage
 and retrieval of structural data.
 
 ## Documentation
@@ -31,4 +31,3 @@ LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
-
