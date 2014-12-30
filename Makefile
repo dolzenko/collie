@@ -1,7 +1,10 @@
 default: test
 
-test:
+deps:
+	go get -t ./...
+
+test: deps
 	go test ./...
 
-.PHONY: default test
+.PHONY: default deps test
 
