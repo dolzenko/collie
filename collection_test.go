@@ -54,13 +54,13 @@ var _ = Describe("Collection", func() {
 
 		BeforeEach(func() {
 			data1 := map[string][]byte{"first": []byte("Jane"), "last": []byte("Doe"), "age": []byte{27}, "city_id": []byte{0, 0, 2, 0}, "active": []byte{1}}
-			data2 := map[string][]byte{"first": []byte("John"), "last": []byte("Doe"), "age": []byte{26}, "city_id": []byte{0, 0, 2, 99}}
+			data2 := testRecord{"first": []byte("John"), "last": []byte("Doe"), "age": []byte{26}, "city_id": []byte{0, 0, 2, 99}}
 
-			n1, err := subject.Add(func(k string) []byte { return data1[k] })
+			n1, err := subject.Add(func(k string) ([]byte, error) { return data1[k], nil })
 			Expect(n1).To(Equal(int64(0)))
 			Expect(err).NotTo(HaveOccurred())
 
-			n2, err := subject.Add(func(k string) []byte { return data2[k] })
+			n2, err := subject.AddRecord(data2)
 			Expect(n2).To(Equal(int64(1)))
 			Expect(err).NotTo(HaveOccurred())
 		})
@@ -78,10 +78,12 @@ var _ = Describe("Collection", func() {
 		})
 
 		It("should rollback on failures", func() {
-			subject.columns["failing"] = failingColumn{}
-
-			data := map[string][]byte{"first": []byte("Jill"), "last": []byte("Doe"), "age": []byte{25}, "failing": []byte{1}}
-			n, err := subject.Add(func(k string) []byte { return data[k] })
+			n, err := subject.Add(func(k string) ([]byte, error) {
+				if k == "first" {
+					return nil, io.EOF
+				}
+				return []byte{0}, nil
+			})
 			Expect(n).To(Equal(int64(-1)))
 			Expect(err).To(Equal(io.EOF))
 			Expect(subject.offset).To(Equal(int64(2)))
@@ -139,12 +141,6 @@ var _ = Describe("Collection", func() {
 	})
 })
 
-type failingColumn struct{}
+type testRecord map[string][]byte
 
-func (failingColumn) Add(b []byte) error               { return io.EOF }
-func (failingColumn) Get(offset int64) ([]byte, error) { return nil, nil }
-func (failingColumn) Len() int64                       { return 0 }
-func (failingColumn) Truncate(offset int64) error      { return nil }
-func (failingColumn) Close() error                     { return nil }
-
-var _ column.Column = failingColumn{}
+func (t testRecord) EncodeAttr(name string) ([]byte, error) { return t[name], nil }
