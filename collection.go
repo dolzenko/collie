@@ -66,20 +66,20 @@ func (c *Collection) Close() (err error) {
 }
 
 // Add appends a record to collection via callback
-func (c *Collection) Add(toBin func(string) []byte) (offset int64, err error) {
+func (c *Collection) Add(encode func(string) []byte) (offset int64, err error) {
 	offset = -1
 
 	c.wmux.Lock()
 	defer c.wmux.Unlock()
 
 	for name, col := range c.columns {
-		if err = col.Add(toBin(name)); err != nil {
+		if err = col.Add(encode(name)); err != nil {
 			c.rollback(c.offset)
 			return
 		}
 	}
 	for name, idx := range c.indices {
-		if err = idx.Add(toBin(name), c.offset); err != nil {
+		if err = idx.Add(encode(name), c.offset); err != nil {
 			c.rollback(c.offset)
 			return
 		}
@@ -98,7 +98,7 @@ func (c *Collection) Value(name string, offset int64) ([]byte, error) {
 
 	bin, err := col.Get(offset)
 	if err == column.ErrNotFound {
-		return nil, ErrNotFound
+		err = ErrNotFound
 	}
 	return bin, err
 }
@@ -120,9 +120,12 @@ func (c *Collection) rollback(offset int64) {
 
 func (c *Collection) register(col *Column) (err error) {
 	prefix := filepath.Join(c.dir, col.Name)
-	if col.Index {
+
+	switch col.Index {
+	case IndexTypeHash:
 		c.indices[col.Name], err = column.OpenHashIndex(prefix + ".ci")
 	}
+
 	if err == nil && !col.NoData {
 		if col.Size > 0 {
 			c.columns[col.Name], err = column.OpenFixed(prefix+".cc", col.Size)

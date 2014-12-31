@@ -7,6 +7,13 @@ import (
 
 var validColumnName = regexp.MustCompile(`^[a-zA-Z]\w*$`)
 
+type IndexType uint8
+
+const (
+	IndexTypeNone IndexType = iota
+	IndexTypeHash
+)
+
 // Column is an abstract column definition of a schema
 type Column struct {
 	// A column name, names must start with a letter,
@@ -14,8 +21,8 @@ type Column struct {
 	Name string
 	// The maximum column length in bytes, assumed to be variable if <1
 	Size int
-	// Create an index for this column. Default: false
-	Index bool
+	// Create an index for this column. Default: IndexTypeNone
+	Index IndexType
 	// Do not store the data of this column, useful for
 	// index-only columns
 	NoData bool

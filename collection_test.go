@@ -24,8 +24,8 @@ var _ = Describe("Collection", func() {
 		schema, err = NewSchema([]Column{
 			{Name: "first"},
 			{Name: "last", Size: 40},
-			{Name: "city_id", Size: 4, Index: true},
-			{Name: "age", Size: 1, Index: true, NoData: true},
+			{Name: "city_id", Size: 4, Index: IndexTypeHash},
+			{Name: "age", Size: 1, Index: IndexTypeHash, NoData: true},
 			{Name: "active", Size: 1},
 		})
 		Expect(err).NotTo(HaveOccurred())
