@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 
 	"github.com/bsm/collie/column"
 )
@@ -50,6 +51,16 @@ func OpenCollection(dir string, schema *Schema) (*Collection, error) {
 	return coll, nil
 }
 
+// Begin starts a new transaction. The rows argument defines
+// the capacity of the transactional cache and should hint
+// at the number of rows about to be added.
+func (c *Collection) Begin(rows int) *Txn { return newTxn(c, rows) }
+
+// Offset returns the current offset
+func (c *Collection) Offset() int64 { return atomic.LoadInt64(&c.offset) }
+
+func (c *Collection) storeOffset(o int64) { atomic.StoreInt64(&c.offset, o) }
+
 // Close closes the schema
 func (c *Collection) Close() (err error) {
 	for _, c := range c.columns {
@@ -63,46 +74,6 @@ func (c *Collection) Close() (err error) {
 		}
 	}
 	return
-}
-
-// Add appends a record to collection via callbacks
-func (c *Collection) Add(encC EncodeColumnFunc, encI EncodeIndexFunc) (offset int64, err error) {
-	offset = -1
-
-	c.wmux.Lock()
-	defer c.wmux.Unlock()
-
-	for name, col := range c.columns {
-		var val []byte
-		if val, err = encC(name); err != nil {
-			c.rollback(c.offset)
-			return
-		} else if err = col.Add(val); err != nil {
-			c.rollback(c.offset)
-			return
-		}
-	}
-	for name, idx := range c.indices {
-		var vals [][]byte
-		if vals, err = encI(name); err != nil {
-			c.rollback(c.offset)
-			return
-		}
-		for _, val := range vals {
-			if err = idx.Add(val, c.offset); err != nil {
-				c.rollback(c.offset)
-				return
-			}
-		}
-	}
-	offset = c.offset
-	c.offset++
-	return
-}
-
-// AddRecord appends an encodable record to collection
-func (c *Collection) AddRecord(rec Encodable) (int64, error) {
-	return c.Add(rec.EncodeColumn, rec.EncodeIndex)
 }
 
 // Value returns a column value at a given offset
@@ -126,12 +97,6 @@ func (c *Collection) Offsets(name string, value []byte) ([]int64, error) {
 		return nil, ErrColumnNotFound
 	}
 	return idx.Get(value)
-}
-
-func (c *Collection) rollback(offset int64) {
-	for _, col := range c.columns {
-		col.Truncate(offset)
-	}
 }
 
 func (c *Collection) register(col *Column) (err error) {

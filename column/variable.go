@@ -96,17 +96,21 @@ func (c *Variable) Add(b []byte) error {
 	return nil
 }
 
-func (c *Variable) Truncate(rows int64) error {
+func (c *Variable) Truncate(rows int64) (err error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
-	pos, err := c.offset(rows - 1)
-	if err != nil {
-		return err
+	var pos int64
+	if rows > 0 {
+		if pos, err = c.offset(rows - 1); err != nil {
+			return
+		}
+	} else {
+		rows = 0
 	}
 
 	if err = c.file.Truncate(rows * 8); err != nil {
-		return err
+		return
 	}
 	c.rows = rows
 	c.pos = pos

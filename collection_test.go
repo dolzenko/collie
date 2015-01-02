@@ -1,11 +1,6 @@
 package collie
 
 import (
-	"io"
-	"io/ioutil"
-	"os"
-
-	"github.com/bsm/collie/column"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -13,14 +8,9 @@ import (
 var _ = Describe("Collection", func() {
 	var subject *Collection
 	var schema *Schema
-	var testDir string
 
 	BeforeEach(func() {
 		var err error
-
-		testDir, err = ioutil.TempDir("", "collie.test")
-		Expect(err).NotTo(HaveOccurred())
-
 		schema, err = NewSchema([]Column{
 			{Name: "first"},
 			{Name: "last", Size: 40},
@@ -36,7 +26,6 @@ var _ = Describe("Collection", func() {
 
 	AfterEach(func() {
 		subject.Close()
-		os.RemoveAll(testDir)
 	})
 
 	It("should register types", func() {
@@ -53,18 +42,12 @@ var _ = Describe("Collection", func() {
 	Describe("input/output", func() {
 
 		BeforeEach(func() {
-			data1 := map[string][]byte{"first": []byte("Jane"), "last": []byte("Doe"), "age": []byte{27}, "accountIds": []byte{0, 0, 2, 0}, "active": []byte{1}}
-			data2 := testRecord{"first": []byte("John"), "last": []byte("Doe"), "age": []byte{26}, "accountIds": []byte{0, 0, 2, 99}}
+			txn := subject.Begin(2)
+			txn.Add(testRecord{"first": []byte("Jane"), "last": []byte("Doe"), "age": []byte{27}, "accountIds": []byte{0, 0, 2, 0}, "active": []byte{1}})
+			txn.Add(testRecord{"first": []byte("John"), "last": []byte("Doe"), "age": []byte{26}, "accountIds": []byte{0, 0, 2, 99}})
 
-			n1, err := subject.Add(
-				func(k string) ([]byte, error) { return data1[k], nil },
-				func(k string) ([][]byte, error) { return [][]byte{data1[k]}, nil },
-			)
-			Expect(n1).To(Equal(int64(0)))
-			Expect(err).NotTo(HaveOccurred())
-
-			n2, err := subject.AddRecord(data2)
-			Expect(n2).To(Equal(int64(1)))
+			n, err := txn.Commit()
+			Expect(n).To(Equal(int64(2)))
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -78,33 +61,6 @@ var _ = Describe("Collection", func() {
 			subject, err = OpenCollection(testDir, schema)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(subject.offset).To(Equal(int64(2)))
-		})
-
-		It("should rollback on failures", func() {
-			n, err := subject.Add(
-				func(k string) ([]byte, error) {
-					if k == "first" {
-						return nil, io.EOF
-					}
-					return []byte{0}, nil
-				},
-				func(k string) ([][]byte, error) { return [][]byte{{0}}, nil },
-			)
-			Expect(n).To(Equal(int64(-1)))
-			Expect(err).To(Equal(io.EOF))
-			Expect(subject.offset).To(Equal(int64(2)))
-
-			Expect(subject.columns["first"].Len()).To(Equal(int64(2)))
-			bin, err := subject.columns["first"].Get(0)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(string(bin)).To(Equal("Jane"))
-
-			bin, err = subject.columns["first"].Get(1)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(string(bin)).To(Equal("John"))
-
-			_, err = subject.columns["first"].Get(2)
-			Expect(err).To(Equal(column.ErrNotFound))
 		})
 
 		It("should get values at offset", func() {
@@ -145,9 +101,5 @@ var _ = Describe("Collection", func() {
 		})
 
 	})
+
 })
-
-type testRecord map[string][]byte
-
-func (t testRecord) EncodeColumn(name string) ([]byte, error)  { return t[name], nil }
-func (t testRecord) EncodeIndex(name string) ([][]byte, error) { return [][]byte{t[name]}, nil }

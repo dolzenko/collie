@@ -152,6 +152,11 @@ var _ = Describe("Fixed", func() {
 		Expect(val).To(Equal([]byte("D")))
 		_, err = subject.Get(2)
 		Expect(err).To(Equal(ErrNotFound))
+
+		Expect(subject.Truncate(0)).NotTo(HaveOccurred())
+		Expect(subject.Len()).To(Equal(int64(0)))
+		_, err = subject.Get(0)
+		Expect(err).To(Equal(ErrNotFound))
 	})
 
 })

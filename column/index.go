@@ -1,6 +1,7 @@
 package column
 
 import (
+	"bytes"
 	"encoding/binary"
 	"hash/fnv"
 	"sync"
@@ -22,6 +23,7 @@ func hashBucket(key []byte) int {
 type Index interface {
 	Get([]byte) ([]int64, error)
 	Add([]byte, int64) error
+	Undo([]byte, int64) error
 	Close() error
 }
 
@@ -69,6 +71,30 @@ func (i *HashIndex) Get(b []byte) ([]int64, error) {
 		res = append(res, int64(off))
 	}
 	return res, nil
+}
+
+func (i *HashIndex) Undo(b []byte, off int64) error {
+	buf := make([]byte, 8)
+	binary.BigEndian.PutUint64(buf, uint64(off))
+
+	slot := hashBucket(b)
+	i.locks[slot].Lock()
+	defer i.locks[slot].Unlock()
+
+	val, err := i.db.Get(b, nil)
+	vlen := len(val)
+	if err == leveldb.ErrNotFound || vlen < 8 {
+		return nil
+	} else if err != nil {
+		return err
+	}
+
+	if vlen == 8 && bytes.Equal(buf, val) {
+		return i.db.Delete(b, nil)
+	} else if bytes.Equal(buf, val[vlen-8:vlen]) {
+		return i.db.Put(b, val[:vlen-8], nil)
+	}
+	return nil
 }
 
 func (i *HashIndex) Close() error {

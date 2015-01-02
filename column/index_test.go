@@ -34,11 +34,29 @@ var _ = Describe("HashIndex", func() {
 		fill()
 		offs, err = subject.Get([]byte("a"))
 		Expect(err).NotTo(HaveOccurred())
-		Expect(offs).To(ConsistOf([]int64{1, 2}))
+		Expect(offs).To(Equal([]int64{1, 2}))
 
 		offs, err = subject.Get([]byte("b"))
 		Expect(err).NotTo(HaveOccurred())
-		Expect(offs).To(ConsistOf([]int64{3}))
+		Expect(offs).To(Equal([]int64{3}))
+	})
+
+	It("should undo", func() {
+		Expect(subject.Undo([]byte("a"), 1)).NotTo(HaveOccurred())
+		offs, err := subject.Get([]byte("a"))
+		Expect(err).NotTo(HaveOccurred())
+		Expect(offs).To(BeNil())
+
+		fill()
+		Expect(subject.Undo([]byte("a"), 1)).NotTo(HaveOccurred())
+		offs, err = subject.Get([]byte("a"))
+		Expect(err).NotTo(HaveOccurred())
+		Expect(offs).To(Equal([]int64{1, 2}))
+
+		Expect(subject.Undo([]byte("a"), 2)).NotTo(HaveOccurred())
+		offs, err = subject.Get([]byte("a"))
+		Expect(err).NotTo(HaveOccurred())
+		Expect(offs).To(Equal([]int64{1}))
 	})
 
 	It("should add values atomically", func() {

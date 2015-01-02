@@ -168,14 +168,19 @@ var _ = Describe("Variable", func() {
 		Expect(subject.Len()).To(Equal(int64(5)))
 		Expect(subject.pos).To(Equal(int64(14)))
 
-		var val []byte
 		val, err := subject.Get(3)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(val).To(Equal([]byte("abcd")))
 		val, err = subject.Get(4)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(val).To(Equal([]byte("xxxx")))
-		val, err = subject.Get(5)
+		_, err = subject.Get(5)
+		Expect(err).To(Equal(ErrNotFound))
+
+		Expect(subject.Truncate(0)).NotTo(HaveOccurred())
+		Expect(subject.Len()).To(Equal(int64(0)))
+		Expect(subject.pos).To(Equal(int64(0)))
+		_, err = subject.Get(0)
 		Expect(err).To(Equal(ErrNotFound))
 	})
 
