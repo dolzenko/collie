@@ -1,7 +1,5 @@
 package column
 
-import "bytes"
-
 // A fixed-length column type
 type Fixed struct {
 	abstract
@@ -22,10 +20,6 @@ func (c *Fixed) Get(offset int64) ([]byte, error) {
 	buf := make([]byte, c.maxLen)
 	if _, err := c.file.ReadAt(buf, min); err != nil {
 		return nil, checkNotFound(err)
-	}
-
-	if i := bytes.IndexByte(buf, 0); i >= 0 {
-		buf = buf[:i]
 	}
 	return buf, nil
 }

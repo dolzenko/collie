@@ -82,19 +82,19 @@ var _ = Describe("Fixed", func() {
 		fill()
 		val, err := subject.Get(0)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(val).To(Equal([]byte("a")))
+		Expect(val).To(Equal([]byte{'a', 0, 0, 0}))
 		val, err = subject.Get(2)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(val).To(Equal([]byte("abc")))
+		Expect(val).To(Equal([]byte{'a', 'b', 'c', 0}))
 		val, err = subject.Get(4)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(val).To(Equal([]byte("abcd")))
+		Expect(val).To(Equal([]byte{'a', 'b', 'c', 'd'}))
 		val, err = subject.Get(5)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(val).To(Equal([]byte("abcd")))
+		Expect(val).To(Equal([]byte{'a', 'b', 'c', 'd'}))
 		val, err = subject.Get(6)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(val).To(Equal([]byte("abc")))
+		Expect(val).To(Equal([]byte{'a', 'b', 'c', 0}))
 
 		val, err = subject.Get(-1)
 		Expect(err).To(Equal(ErrNotFound))
@@ -133,15 +133,15 @@ var _ = Describe("Fixed", func() {
 
 		val, err := subject.Get(100)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(val).To(Equal([]byte("100")))
+		Expect(val).To(Equal([]byte{'1', '0', '0', 0}))
 
 		val, err = subject.Get(900)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(val).To(Equal([]byte("900")))
+		Expect(val).To(Equal([]byte{'9', '0', '0', 0}))
 
 		val, err = subject.Get(1200)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(val).To(Equal([]byte("1200")))
+		Expect(val).To(Equal([]byte{'1', '2', '0', '0'}))
 	})
 
 	It("should truncate", func() {
@@ -158,10 +158,10 @@ var _ = Describe("Fixed", func() {
 
 		val, err := subject.Get(0)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(val).To(Equal([]byte("A")))
+		Expect(val).To(Equal([]byte{'A', 0, 0, 0}))
 		val, err = subject.Get(1)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(val).To(Equal([]byte("D")))
+		Expect(val).To(Equal([]byte{'D', 0, 0, 0}))
 		_, err = subject.Get(2)
 		Expect(err).To(Equal(ErrNotFound))
 
