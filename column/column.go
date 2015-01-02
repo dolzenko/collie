@@ -47,18 +47,18 @@ func (c *abstract) truncate(pos, off int64) error {
 // HELPERS
 
 func openFile(fname string) (*os.File, int64, error) {
-	file, err := os.OpenFile(fname, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0664)
+	file, err := os.OpenFile(fname, os.O_CREATE|os.O_RDWR, 0664)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	info, err := file.Stat()
+	pos, err := file.Seek(0, os.SEEK_END)
 	if err != nil {
 		file.Close()
 		return nil, 0, err
 	}
 
-	return file, info.Size(), nil
+	return file, pos, nil
 }
 
 func checkNotFound(err error) error {

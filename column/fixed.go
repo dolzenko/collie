@@ -38,7 +38,7 @@ func (c *Fixed) Add(b []byte) error {
 	buf := make([]byte, c.maxLen)
 	copy(buf, b)
 
-	_, err := c.file.Write(buf)
+	_, err := c.file.WriteAt(buf, c.Len()*int64(c.maxLen))
 	if err == nil {
 		c.inc(1)
 	}

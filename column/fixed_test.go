@@ -59,16 +59,28 @@ var _ = Describe("Fixed", func() {
 		Expect(subject.Len()).To(Equal(int64(9)))
 	})
 
+	It("should recover from partial writes", func() {
+		fill()
+		_, err := subject.file.WriteAt([]byte{'x', 'y', 'z'}, 36)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(subject.Close()).NotTo(HaveOccurred())
+
+		subject, err = OpenFixed(filepath.Join(testDir, "col"), 4)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(subject.rows).To(Equal(int64(9)))
+		Expect(subject.Len()).To(Equal(int64(9)))
+	})
+
 	It("should read values at index", func() {
-		val, err := subject.Get(-1)
+		_, err := subject.Get(-1)
 		Expect(err).To(Equal(ErrNotFound))
-		val, err = subject.Get(0)
+		_, err = subject.Get(0)
 		Expect(err).To(Equal(ErrNotFound))
-		val, err = subject.Get(10)
+		_, err = subject.Get(10)
 		Expect(err).To(Equal(ErrNotFound))
 
 		fill()
-		val, err = subject.Get(0)
+		val, err := subject.Get(0)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(val).To(Equal([]byte("a")))
 		val, err = subject.Get(2)
