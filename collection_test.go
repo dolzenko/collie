@@ -24,8 +24,8 @@ var _ = Describe("Collection", func() {
 		schema, err = NewSchema([]Column{
 			{Name: "first"},
 			{Name: "last", Size: 40},
-			{Name: "city_id", Size: 4, Index: IndexTypeHash},
-			{Name: "age", Size: 1, Index: IndexTypeHash, NoData: true},
+			{Name: "accountIds", Size: 4, Index: IndexTypeHash, NoData: true},
+			{Name: "age", Size: 1, Index: IndexTypeHash},
 			{Name: "active", Size: 1},
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -43,20 +43,23 @@ var _ = Describe("Collection", func() {
 		Expect(subject.columns).To(HaveLen(4))
 		Expect(subject.columns).To(HaveKey("first"))
 		Expect(subject.columns).To(HaveKey("last"))
-		Expect(subject.columns).To(HaveKey("city_id"))
+		Expect(subject.columns).To(HaveKey("age"))
 		Expect(subject.columns).To(HaveKey("active"))
 		Expect(subject.indices).To(HaveLen(2))
-		Expect(subject.indices).To(HaveKey("city_id"))
+		Expect(subject.indices).To(HaveKey("accountIds"))
 		Expect(subject.indices).To(HaveKey("age"))
 	})
 
 	Describe("input/output", func() {
 
 		BeforeEach(func() {
-			data1 := map[string][]byte{"first": []byte("Jane"), "last": []byte("Doe"), "age": []byte{27}, "city_id": []byte{0, 0, 2, 0}, "active": []byte{1}}
-			data2 := testRecord{"first": []byte("John"), "last": []byte("Doe"), "age": []byte{26}, "city_id": []byte{0, 0, 2, 99}}
+			data1 := map[string][]byte{"first": []byte("Jane"), "last": []byte("Doe"), "age": []byte{27}, "accountIds": []byte{0, 0, 2, 0}, "active": []byte{1}}
+			data2 := testRecord{"first": []byte("John"), "last": []byte("Doe"), "age": []byte{26}, "accountIds": []byte{0, 0, 2, 99}}
 
-			n1, err := subject.Add(func(k string) ([]byte, error) { return data1[k], nil })
+			n1, err := subject.Add(
+				func(k string) ([]byte, error) { return data1[k], nil },
+				func(k string) ([][]byte, error) { return [][]byte{data1[k]}, nil },
+			)
 			Expect(n1).To(Equal(int64(0)))
 			Expect(err).NotTo(HaveOccurred())
 
@@ -78,12 +81,15 @@ var _ = Describe("Collection", func() {
 		})
 
 		It("should rollback on failures", func() {
-			n, err := subject.Add(func(k string) ([]byte, error) {
-				if k == "first" {
-					return nil, io.EOF
-				}
-				return []byte{0}, nil
-			})
+			n, err := subject.Add(
+				func(k string) ([]byte, error) {
+					if k == "first" {
+						return nil, io.EOF
+					}
+					return []byte{0}, nil
+				},
+				func(k string) ([][]byte, error) { return [][]byte{{0}}, nil },
+			)
 			Expect(n).To(Equal(int64(-1)))
 			Expect(err).To(Equal(io.EOF))
 			Expect(subject.offset).To(Equal(int64(2)))
@@ -143,4 +149,5 @@ var _ = Describe("Collection", func() {
 
 type testRecord map[string][]byte
 
-func (t testRecord) EncodeAttr(name string) ([]byte, error) { return t[name], nil }
+func (t testRecord) EncodeColumn(name string) ([]byte, error)  { return t[name], nil }
+func (t testRecord) EncodeIndex(name string) ([][]byte, error) { return [][]byte{t[name]}, nil }

@@ -7,6 +7,12 @@ var (
 	ErrColumnNotFound = errors.New("collie: column not found")
 )
 
+type (
+	EncodeColumnFunc func(string) ([]byte, error)
+	EncodeIndexFunc  func(string) ([][]byte, error)
+)
+
 type Encodable interface {
-	EncodeAttr(string) ([]byte, error)
+	EncodeColumn(string) ([]byte, error)
+	EncodeIndex(string) ([][]byte, error)
 }

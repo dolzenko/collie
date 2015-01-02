@@ -65,36 +65,34 @@ func (c *Collection) Close() (err error) {
 	return
 }
 
-// Add appends a record to collection via callback
-func (c *Collection) Add(encode func(string) ([]byte, error)) (offset int64, err error) {
+// Add appends a record to collection via callbacks
+func (c *Collection) Add(encC EncodeColumnFunc, encI EncodeIndexFunc) (offset int64, err error) {
 	offset = -1
 
 	c.wmux.Lock()
 	defer c.wmux.Unlock()
 
-	cache := make(map[string][]byte, len(c.columns)+len(c.indices))
 	for name, col := range c.columns {
 		var val []byte
-		if val, err = encode(name); err != nil {
+		if val, err = encC(name); err != nil {
 			c.rollback(c.offset)
 			return
 		} else if err = col.Add(val); err != nil {
 			c.rollback(c.offset)
 			return
 		}
-		cache[name] = val
 	}
 	for name, idx := range c.indices {
-		val, ok := cache[name]
-		if !ok {
-			if val, err = encode(name); err != nil {
+		var vals [][]byte
+		if vals, err = encI(name); err != nil {
+			c.rollback(c.offset)
+			return
+		}
+		for _, val := range vals {
+			if err = idx.Add(val, c.offset); err != nil {
 				c.rollback(c.offset)
 				return
 			}
-		}
-		if err = idx.Add(val, c.offset); err != nil {
-			c.rollback(c.offset)
-			return
 		}
 	}
 	offset = c.offset
@@ -103,7 +101,9 @@ func (c *Collection) Add(encode func(string) ([]byte, error)) (offset int64, err
 }
 
 // AddRecord appends an encodable record to collection
-func (c *Collection) AddRecord(rec Encodable) (int64, error) { return c.Add(rec.EncodeAttr) }
+func (c *Collection) AddRecord(rec Encodable) (int64, error) {
+	return c.Add(rec.EncodeColumn, rec.EncodeIndex)
+}
 
 // Value returns a column value at a given offset
 func (c *Collection) Value(name string, offset int64) ([]byte, error) {
