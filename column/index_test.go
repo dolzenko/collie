@@ -41,6 +41,14 @@ var _ = Describe("HashIndex", func() {
 		Expect(offs).To(Equal([]int64{3}))
 	})
 
+	It("should not add blanks", func() {
+		Expect(subject.Add(nil, 1)).NotTo(HaveOccurred())
+
+		offs, err := subject.Get(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(offs).To(BeEmpty())
+	})
+
 	It("should undo", func() {
 		Expect(subject.Undo([]byte("a"), 1)).NotTo(HaveOccurred())
 		offs, err := subject.Get([]byte("a"))

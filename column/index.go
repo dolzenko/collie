@@ -43,6 +43,10 @@ func OpenHashIndex(dir string) (*HashIndex, error) {
 }
 
 func (i *HashIndex) Add(b []byte, off int64) error {
+	if b == nil {
+		return nil
+	}
+
 	buf := make([]byte, 8)
 	binary.BigEndian.PutUint64(buf, uint64(off))
 
