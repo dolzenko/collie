@@ -70,7 +70,12 @@ var _ = Describe("Collection", func() {
 
 			last, err := subject.Value("last", 1)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(string(last)).To(Equal("Doe"))
+			Expect(last).To(Equal([]byte{
+				'D', 'o', 'e', 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			}))
 
 			_, err = subject.Value("last", 2)
 			Expect(err).To(Equal(ErrNotFound))

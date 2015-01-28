@@ -4,7 +4,16 @@ import "errors"
 
 type Schema struct{ columns []Column }
 
-// New creates a new schema for a set of columns
+// CreateSchema behaves like NewSchema, except that it panics on errors
+func CreateSchema(cols []Column) *Schema {
+	schema, err := NewSchema(cols)
+	if err != nil {
+		panic(err)
+	}
+	return schema
+}
+
+// NewSchema creates a new schema for a set of columns
 func NewSchema(cols []Column) (*Schema, error) {
 	schema := &Schema{columns: cols}
 	known := make(map[string]bool, len(cols))
