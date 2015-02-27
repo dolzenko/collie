@@ -39,6 +39,10 @@ func (t *Txn) Commit() (offset int64, err error) {
 
 	current := t.c.Offset()
 	offset = current
+	indices := make(map[string]map[string][]int64)
+	for name := range t.c.indices {
+		indices[name] = make(map[string][]int64)
+	}
 	for _, rec := range t.stash {
 		for name, col := range t.c.columns {
 			if cval, err = rec.ValueAt(name); err != nil {
@@ -48,18 +52,27 @@ func (t *Txn) Commit() (offset int64, err error) {
 			}
 		}
 
-		for name, idx := range t.c.indices {
+		for name := range t.c.indices {
 			if ivals, err = rec.IValuesAt(name); err != nil {
 				goto Rollback
 			}
 			for _, val := range ivals {
-				if err = idx.Add(val, offset); err != nil {
-					goto Rollback
-				}
-				updates = append(updates, indexUpdate{i: idx, v: val, o: offset})
+				indices[name][string(val)] = append(indices[name][string(val)], offset)
 			}
 		}
 		offset++
+	}
+
+	for name, valOffs := range indices {
+		idx := t.c.indices[name]
+		for val, offs := range valOffs {
+			if err = idx.Add([]byte(val), offs...); err != nil {
+				goto Rollback
+			}
+			for _, off := range offs {
+				updates = append(updates, indexUpdate{i: idx, v: Value(val), o: off})
+			}
+		}
 	}
 
 	t.c.storeOffset(offset)

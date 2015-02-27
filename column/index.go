@@ -22,7 +22,7 @@ func hashBucket(key []byte) int {
 // Index interface
 type Index interface {
 	Get([]byte) ([]int64, error)
-	Add([]byte, int64) error
+	Add([]byte, ...int64) error
 	Undo([]byte, int64) error
 	Close() error
 }
@@ -42,13 +42,15 @@ func OpenHashIndex(dir string) (*HashIndex, error) {
 	return &HashIndex{db, make([]sync.Mutex, hashBuckets)}, nil
 }
 
-func (i *HashIndex) Add(b []byte, off int64) error {
+func (i *HashIndex) Add(b []byte, offs ...int64) error {
 	if b == nil {
 		return nil
 	}
 
-	buf := make([]byte, 8)
-	binary.BigEndian.PutUint64(buf, uint64(off))
+	buf := make([]byte, 8*len(offs))
+	for i := 0; i < len(offs); i++ {
+		binary.BigEndian.PutUint64(buf[i*8:], uint64(offs[i]))
+	}
 
 	slot := hashBucket(b)
 	i.locks[slot].Lock()

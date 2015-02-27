@@ -12,8 +12,7 @@ var _ = Describe("HashIndex", func() {
 	var subject *HashIndex
 	var err error
 	var fill = func() {
-		Expect(subject.Add([]byte("a"), 1)).NotTo(HaveOccurred())
-		Expect(subject.Add([]byte("a"), 2)).NotTo(HaveOccurred())
+		Expect(subject.Add([]byte("a"), 1, 2)).NotTo(HaveOccurred())
 		Expect(subject.Add([]byte("b"), 3)).NotTo(HaveOccurred())
 	}
 
